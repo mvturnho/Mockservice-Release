@@ -17,7 +17,7 @@ Otherwise
     - the last succesfull parsed template determines the responsecode and contenttype of the response
 - when all template evaluations fail the freemarker fallback template is used with the responsecode an contentype that are defined with that
 
-![Overview](images/Overview.png)
+![Overview](https://github.com/mvturnho/Mockservice-Release/raw/main/images/Overview.png)
 
 ## Headers
 In the Headers tab you can add headers to the response message. With copy headers selected the request headers are copied to the response message.
