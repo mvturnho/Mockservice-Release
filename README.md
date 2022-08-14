@@ -1,39 +1,102 @@
 # MockService
-Java Swing application for mockservices
+Java Swing application to create and run mockservices.
 
 The objective for the MockService is to easily create a mockservice for any kind of project.
-It generates its response messages using one or more templates. The template can among other information access the payload message from the response.
+It generates its response messages using one or more templates. The template can among other information access the payload message from the request.
 To use elements from the payload you make use of the variables, that can have xpath or jsonpath selecting values and place them in variables.
 
 The mockservice functions in the following way:
 
-- Receive message and determine method and content-type
+- Receive a message and determine the method and content-type
 - When echo is selected just copy all headers and payload to response
 
 Otherwise
 - Resolve all variables using received headers and payload
 - Add the headers from the UI headerTable after resolving all headers that use variables
-- Parse all templates where the expression evaluates to the given value.
-    - the last succesfull parsed template determines the responsecode and contenttype of the response
-- when all template evaluations fail the freemarker fallback template is used with the responsecode an contentype that are defined with that
+- Parse all templates where the expression are valid.
+    - the last successful parsed template determines the responsecode and contenttype of the response
+- when all template expressions are invalid the freemarker fallback template is used with the responsecode an contentype that are defined with that
+
+## Table of Contents.
+- [MockService](#mockservice)
+  - [control-panel](#control-panel)
+  - [context-panel](#context-panel)
+  - [log-panel](#log-panel)
+  - [header-panel](#header-panel)
+  - [variables-panel](#variables-panel)
+  - [templates-panel](#templates-panel)
+  - [Headers](#headers)
+  - [Loopback](#loopback)
+  - [Variables](#variables)
+  - [jsonpath](#jsonpath)
+  - [Attachments](#attachments)
+- [templates](#templates)
+  - [Expressions](#expressions)
+  - [Template specific headers](#template-specific-headers)
+    - [Expression examples](#expression-examples)
+  - [Fallback template](#fallback-template)
+  - [Freemarker support tools](#freemarker-support-tools)
+      - [Load a file from disk from within your template.](#load-a-file-from-disk-from-within-your-template)
+      - [Load a file and return its Object representation.](#load-a-file-and-return-its-object-representation)
+      - [Delete a file.](#delete-a-file)
+      - [Base64n Encode and Decode Strings.](#base64n-encode-and-decode-strings)
+      - [Convert xml to json or vise versa.](#convert-xml-to-json-or-vise-versa)
+      - [Parse xml or json string to Object representation.](#parse-xml-or-json-string-to-object-representation)
+- [Save and Load](#save-and-load)
 
 ![Overview](https://github.com/mvturnho/Mockservice-Release/raw/main/images/Overview.png)
 
+The userinterface contains several functional components:
+## control-panel
+
+![Overview](https://github.com/mvturnho/Mockservice-Release/raw/main/images/control_panel.png)
+
+From here you can load and save your mockservice configurations. By clicking on the title you may change it so you have an indication what the current running instance of the Mockservice is servicing
+
+## context-panel
+
+![Overview](https://github.com/mvturnho/Mockservice-Release/raw/main/images/context_panel.png)
+
+With the contextpanel you can configure the supported protocol, port and contextpath and if the service should behave like a loopback service.
+
+## log-panel
+
+![Overview](https://github.com/mvturnho/Mockservice-Release/raw/main/images/log_panel.png)
+
+The log panel contains the history of all received and processed massages.
+
+## header-panel
+
+![Overview](https://github.com/mvturnho/Mockservice-Release/raw/main/images/header_panel.png)
+
+## variables-panel
+
+![Overview](https://github.com/mvturnho/Mockservice-Release/raw/main/images/var1_panel.png)
+![Overview](https://github.com/mvturnho/Mockservice-Release/raw/main/images/var2_panel.png)
+![Overview](https://github.com/mvturnho/Mockservice-Release/raw/main/images/varcsv_dialog.png)
+
+## templates-panel
+
+![Overview](https://github.com/mvturnho/Mockservice-Release/raw/main/images/template_panel.png)
+![Overview](https://github.com/mvturnho/Mockservice-Release/raw/main/images/templ_expr.png)
+![Overview](https://github.com/mvturnho/Mockservice-Release/raw/main/images/templ_respc.png)
+![Overview](https://github.com/mvturnho/Mockservice-Release/raw/main/images/templ_conttype.png)
+![Overview](https://github.com/mvturnho/Mockservice-Release/raw/main/images/templ_headers.png)
+
 ## Headers
-In the Headers tab you can add headers to the response message. With copy headers selected the request headers are copied to the response message.
+In the Headers tab you can add headers to the response message. With copy-headers selected the request headers are copied to the response message.
 When you want to use a variable as a header just use `$variable_name`
-You may also concatenate these varaible names to form one header value.
+You may also concatenate these variable names to form one header value.
 
 |header   | value            |
 |---------|------------------|
 |`header1`| `$var1$var2$var3`|
 
 ## Loopback
-When selection the echo checkbox the service functions as a loopback service.
-It is also possible to have only the headers echoed.
+When the loopback checkbox is selected, the service functions as a loopback service. So every received message is returned as the response, including all headers.
 
 ## Variables
-In you template and groovy scripts you always have access to the folowing default variables;
+In your templates and groovy scripts you always have access to the following default variables;
 
 |variable           | content       |
 |-------------------|---------------|
@@ -49,131 +112,83 @@ In you template and groovy scripts you always have access to the folowing defaul
 | `url_xxxxx`       | when the request has queryparameters they are exposed as variables with the url_ prefix |
 
 
-
-In the variables tab you can use a variety of options to transfer data to the freemarker template.
-This allows you to set variables or use functions and add namespaces if needed in an xpath.
+In the variables tab you can use a variety of options to make data available to the freemarker or xslt templates.
+This allows you to set variables or use functions and add namespaces if needed.
 
 the variable always has a variable_name. This name can then be directly accessed from the template.
-The value of the variable van be just a string or any of the following indicators.
+The value of the variable can be just a string or any of the following indicators.
 
-| variable       | expression                 |                                                                                      |
-|----------------|----------------------------|--------------------------------------------------------------------------------------|
-| `name`           | `const://Harry `                     | fill variable name with constant value Harry                                          |
-| `action`         | `transport://my_action?none`         | getst the value of header my_action into the action variable. Default value is none  |
-| `responsestring` | `file://response.xml`                | places the content of the file response.xml in the responsestring variable           |
-| `elementname`    | `xpath:////user[0]/name?unknown`     |            | 
-| `bookname`       | `jsonpath://$..books[0].name?unknown`| documentation  https://github.com/json-path/JsonPath|
-| `fileatt`        | `attachment://attname?not found`     | add the attachment of the attachment in the request to the template variable You |
-| `ordernumber`    | `expression://context.substring(context.lastIndexOf("/")+1,context.length())` | the expression is evaluated and put in the var |
-| `businesskey`    | `templatevar://action`               | set the businesskey. This is visible at the history table items |
-| `prefix`         | `context:///mock/v1/api/test/{uid}/user/{zid}` | get the elements from the received uri when the contextpath matches, place the value in prefix_uid and prefix_zid variables |
-| `init://var      | `const://10`                         | Initit this variable with name var only when it does not exist yet |
+| variable            | expression                           |                                                                                      |
+|---------------------|--------------------------------------|--------------------------------------------------------------------------------------|
+| `name`                  | `const://Harry `                         | fill variable name with constant value Harry.                                          |
+| `action`                | `transport://my_action?none`             | getst the value of header my_action into the action variable. Default value is none  |
+| `responsestring`        | `file://response.xml`                    | places the content of the file response.xml in the responsestring variable           |
+| `xmlns://stuf`          | `http://www.egem.nl/StUF/sector/bg/0310` | add a namespace for stufbg to the namespace resolver, this is needed for the xpath |
+| `elementname`           | `xpath:////stufbg:identificatie[0]?unknown` | xpath value for the given xpath expression           | 
+| `bookname`              | `jsonpath:////code?geen_waarde`          | the jsonpath works just like xpath only on a json payload. This payload should have a root element |
+| `fileatt`               | `attachment://attname?not found`         | add the attachment of the attachment in the request to the template variable You |
+| `ordernumber`           | `expression://context.substring(context.lastIndexOf("/")+1,context.length())` | the expression is evaluated and put in the var |
+| `businesskey`           | `templatevar://action`                   | set the businesskey. This is visible at the history table items |
+| `function://func_name`  | `groovy://test.groovy`                   | initialize the function with name funct_name. This function can then be called from the Freemarker template with tunnelFunction |
+| `var_name`              | `function://func_name/action`            | evaluate the function func_name and store the result in variable var_name |
+| `prefix`                | `context:///mock/v1/api/test/{uid}/user/{zid}` | get the elements from the received uri when the contextpath matches, place the value in prefix_uid and prefix_zid variables |
+| `mapping://map_name`    | `file://mapping.csv`                     | create a mapping with name map_name and fil its key/values with the content of the file |
+| `var_name`              | `function://mapping/var_name/key`        | fil variable var_name with the value found in de mapping map_name for the given key (key is a variable) |
+| `init://var`            | `10`                                     | Init this variable with name var only when it does not have a value yet |
+| `int_var`               | `inc://10`                               | Increment the value of int_var with 10 |
+| `int_var`               | `dec://10`                               | Decrement the value of int_var with 10 |
+| `int_var`               | `mul://10`                               | Multiply the value of int_var by 10 |
+| `int_var`               | `div://10`                               | Divide the value of int_var by 10 |
 
 ## jsonpath
 JsonPath expressions always refer to a JSON structure in the same way as XPath expression are used in combination
-with an XML document. The "root member object" in JsonPath is always referred to as `$` regardless if it is an
-object or array.
+with an XML document.
 
-JsonPath expressions can use the dot–notation
+## Attachments
+When you use a variable to get the attachment from a multipart message like so:
 
-`$.store.book[0].title`
+`varname  attachment://test`
 
-or the bracket–notation
+Then the resulting variable is the attachment object. From your template you can access the following methods;
 
-`$['store']['book'][0]['title']`
+- `name`
+- `contentType`
+- `content`
+- `size`
+- `hexBytes`
 
-[JSonPath documentation](https://github.com/json-path/JsonPath)
+So from you template you may use:
 
-## JSonPath examples
+`${test}` Just use the content of the attachment
 
-| JsonPath (click link to try)| Result |
-| :------- | :----- |
-| <a href="http://jsonpath.herokuapp.com/?path=$.store.book[*].author" target="_blank">$.store.book[*].author</a>| The authors of all books     |
-| <a href="http://jsonpath.herokuapp.com/?path=$..author" target="_blank">$..author</a>                   | All authors                         |
-| <a href="http://jsonpath.herokuapp.com/?path=$.store.*" target="_blank">$.store.*</a>                  | All things, both books and bicycles  |
-| <a href="http://jsonpath.herokuapp.com/?path=$.store..price" target="_blank">$.store..price</a>             | The price of everything         |
-| <a href="http://jsonpath.herokuapp.com/?path=$..book[2]" target="_blank">$..book[2]</a>                 | The third book                      |
-| <a href="http://jsonpath.herokuapp.com/?path=$..book[2]" target="_blank">$..book[-2]</a>                 | The second to last book            |
-| <a href="http://jsonpath.herokuapp.com/?path=$..book[0,1]" target="_blank">$..book[0,1]</a>               | The first two books               |
-| <a href="http://jsonpath.herokuapp.com/?path=$..book[:2]" target="_blank">$..book[:2]</a>                | All books from index 0 (inclusive) until index 2 (exclusive) |
-| <a href="http://jsonpath.herokuapp.com/?path=$..book[1:2]" target="_blank">$..book[1:2]</a>                | All books from index 1 (inclusive) until index 2 (exclusive) |
-| <a href="http://jsonpath.herokuapp.com/?path=$..book[-2:]" target="_blank">$..book[-2:]</a>                | Last two books                   |
-| <a href="http://jsonpath.herokuapp.com/?path=$..book[2:]" target="_blank">$..book[2:]</a>                | Book number two from tail          |
-| <a href="http://jsonpath.herokuapp.com/?path=$..book[?(@.isbn)]" target="_blank">$..book[?(@.isbn)]</a>          | All books with an ISBN number         |
-| <a href="http://jsonpath.herokuapp.com/?path=$.store.book[?(@.price < 10)]" target="_blank">$.store.book[?(@.price < 10)]</a> | All books in store cheaper than 10  |
-| <a href="http://jsonpath.herokuapp.com/?path=$..book[?(@.price <= $['expensive'])]" target="_blank">$..book[?(@.price <= $['expensive'])]</a> | All books in store that are not "expensive"  |
-| <a href="http://jsonpath.herokuapp.com/?path=$..book[?(@.author =~ /.*REES/i)]" target="_blank">$..book[?(@.author =~ /.*REES/i)]</a> | All books matching regex (ignore case)  |
-| <a href="http://jsonpath.herokuapp.com/?path=$..*" target="_blank">$..*</a>                        | Give me every thing
-| <a href="http://jsonpath.herokuapp.com/?path=$..book.length()" target="_blank">$..book.length()</a>                 | The number of books                      |
+`${varname.contentType}` Results in the contenttype
 
-Operators
----------
+`${varname.name}` Attachment name in the multipartformdata message
 
-| Operator                  | Description                                                        |
-| :------------------------ | :----------------------------------------------------------------- |
-| `$`                       | The root element to query. This starts all path expressions.       |
-| `@`                       | The current node being processed by a filter predicate.            |
-| `*`                       | Wildcard. Available anywhere a name or numeric are required.       |
-| `..`                      | Deep scan. Available anywhere a name is required.                  |
-| `.<name>`                 | Dot-notated child                                                  |
-| `['<name>' (, '<name>')]` | Bracket-notated child or children                                  |
-| `[<number> (, <number>)]` | Array index or indexes                                             |
-| `[start:end]`             | Array slice operator                                               |
-| `[?(<expression>)]`       | Filter expression. Expression must evaluate to a boolean value.    |
+`${varname.size}` Size of the attachment
 
-
-Functions
----------
-
-Functions can be invoked at the tail end of a path - the input to a function is the output of the path expression.
-The function output is dictated by the function itself.
-
-| Function                  | Description                                                         | Output type |
-| :------------------------ | :------------------------------------------------------------------ |:----------- |
-| min()                     | Provides the min value of an array of numbers                       | Double      |
-| max()                     | Provides the max value of an array of numbers                       | Double      |
-| avg()                     | Provides the average value of an array of numbers                   | Double      | 
-| stddev()                  | Provides the standard deviation value of an array of numbers        | Double      | 
-| length()                  | Provides the length of an array                                     | Integer     |
-| sum()                     | Provides the sum value of an array of numbers                       | Double      |
-| keys()                    | Provides the property keys (An alternative for terminal tilde `~`)  | `Set<E>`    |
-| concat(X)                 | Provides a concatinated version of the path output with a new item  | like input  |
-| append(X)                 | add an item to the json path output array                           | like input  |
-
-Filter Operators
------------------
-
-Filters are logical expressions used to filter arrays. A typical filter would be `[?(@.age > 18)]` where `@` represents the current item being processed. More complex filters can be created with logical operators `&&` and `||`. String literals must be enclosed by single or double quotes (`[?(@.color == 'blue')]` or `[?(@.color == "blue")]`).   
-
-| Operator                 | Description                                                           |
-| :----------------------- | :-------------------------------------------------------------------- |
-| ==                       | left is equal to right (note that 1 is not equal to '1')              |
-| !=                       | left is not equal to right                                            |
-| <                        | left is less than right                                               |
-| <=                       | left is less or equal to right                                        |
-| >                        | left is greater than right                                            |
-| >=                       | left is greater than or equal to right                                |
-| =~                       | left matches regular expression  [?(@.name =~ /foo.*?/i)]             |
-| in                       | left exists in right [?(@.size in ['S', 'M'])]                        |
-| nin                      | left does not exists in right                                         |
-| subsetof                 | left is a subset of right [?(@.sizes subsetof ['S', 'M', 'L'])]       |
-| anyof                    | left has an intersection with right [?(@.sizes anyof ['M', 'L'])]     |
-| noneof                   | left has no intersection with right [?(@.sizes noneof ['M', 'L'])]    |
-| size                     | size of left (array or string) should match right                     |
-| empty                    | left (array or string) should be empty                                |
 
 
 # templates
 
-For templates we support
-- freemarker
-- Xslt
-- Groovy
-- plain text files
+In the templates tab you have a 'template file directory'. All templates are loaded from this directory.
+You can add templates that need to be used to generate a response for the mockserver. Based on the expression the template is evaluated or skipped. When no templates were applicable 
+the fallbacktemplate is used.
+
+Every template defines a template-file, expression, value, responsecode and a content-type for the response.
+
+When 'evaluate all templates' is selected the parser continues to evaluate the next template when the expression is valid. So when an expression evaluates to be valid, 
+the template is applied on the payload. When the next expression is valid that template is applied to the resulting payload of the previous template.
+
+For templates the following filetypes are support
+- freemarker .ftl
+- Xslt .xsl
+- Groovy .groovy
+- all other files as plain text files 
 
 ## Expressions
 
-for template evaluation we use MVEL2 [MVEL documentation](http://mvel.documentnode.com/)
+for template evaluation we use MVEL2 http://mvel.documentnode.com/
 
 You can leave out the @{} the expression evalueates like java style syntax.
 For strings (templatevars) you may use all String object methods
@@ -181,6 +196,59 @@ For strings (templatevars) you may use all String object methods
 When no expression is defined the template will always be processed, unless "evaluate all templates" is off and 
 another template was already processed.
 
+## Template specific headers
+
+Per template row you can define specific headers that will be added to the response when the expression is valid.
+
+### Expression examples
+
+- `context.endsWith("samenwerken")` value is then `true` or `false`
+- `method.equals("POST")`
+- `context.contains("verwerken")"`
+- `context.indexOff("test")` value could be 20 when the text should occur on that position in the contextpath
+
 ## Fallback template
 
-The Fallback templates can be edited from the editor in the bottom, also you define the Fallback responsecode and contenttype here.
+The Fallback template is a Freemarker template and can be edited from the editor in the bottom, also you define the Fallback responsecode and contenttype here.
+
+## Freemarker support tools
+
+Within the freemarker template factory ther is a special toolset that can be used from the tools refference.
+
+#### Load a file from disk from within your template. 
+
+This can also be done using the variables, but in some cases you may 
+only need the file from within a specific template.
+
+`<#assign xml_text = tools.loadFile("filename.xml")>`
+
+#### Load a file and return its Object representation.
+
+`<#assign xmlNodeModel = tools.load("filename.xml")>`  Loads a file into the xml NodeModel.
+
+`<#assign jsonObject = tools.load("filename.json")>` Loads the json file into a HashMap Object.
+
+#### Delete a file.
+
+`<#assign result = tools.deleteFile("fileName")>`
+
+#### Base64n Encode and Decode Strings.
+
+`<#assign encodedString = tools.b64Encode(contentString)>`
+
+`<#assign decodedString = tools.b64Decode(encodedString)>`
+
+#### Convert xml to json or vise versa.
+
+`<#assign jsonString = tools.xmlToJson(xmlString)>`
+`<#assign xmlString = tools.jsonToXml(jsonString)>` 
+
+#### Parse xml or json string to Object representation.
+
+`<#assign jsonObject = tools.parseJson("jsonString")>`
+`<#assign xmlObject = tools.parseXml("xmlString")>`
+
+# Save and Load
+
+You can save and load your configurations. The directory for the save file should be the same as where the templates reside.
+This way the mockconfigurations are portable between systems.
