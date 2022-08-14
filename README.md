@@ -72,15 +72,21 @@ The log panel contains the history of all received and processed massages.
 ## variables-panel
 
 ![Overview](https://github.com/mvturnho/Mockservice-Release/raw/main/images/var1_panel.png)
+
 ![Overview](https://github.com/mvturnho/Mockservice-Release/raw/main/images/var2_panel.png)
+
 ![Overview](https://github.com/mvturnho/Mockservice-Release/raw/main/images/varcsv_dialog.png)
 
 ## templates-panel
 
 ![Overview](https://github.com/mvturnho/Mockservice-Release/raw/main/images/template_panel.png)
+
 ![Overview](https://github.com/mvturnho/Mockservice-Release/raw/main/images/templ_expr.png)
+
 ![Overview](https://github.com/mvturnho/Mockservice-Release/raw/main/images/templ_respc.png)
+
 ![Overview](https://github.com/mvturnho/Mockservice-Release/raw/main/images/templ_conttype.png)
+
 ![Overview](https://github.com/mvturnho/Mockservice-Release/raw/main/images/templ_headers.png)
 
 ## Headers
